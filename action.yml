@@ -1,0 +1,15 @@
+name: "Gition"
+description: "Turn Notion pages into Git repos"
+inputs:
+    NOTION_SECRET:
+        description: "Your Notion integration secret"
+        required: true
+        default: ""
+    NOTION_PAGE:
+        description: "Your Notion page to be the root of the content"
+        required: true
+        default: ""
+
+runs:
+    using: "docker"
+    image: "Dockerfile"
