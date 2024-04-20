@@ -1,22 +1,22 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-    "moduleResolution": "Node16",
-    "outDir": "dist",
-    "verbatimModuleSyntax": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "skipLibCheck": true,
-    "ignoreDeprecations": "5.0"
-  },
-  "extends": [],
-  "exclude": ["node_modules"],
-  "include": ["src/**/*.ts"]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "Node16",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"]
+		},
+		"moduleResolution": "Node16",
+		"outDir": "dist",
+		"verbatimModuleSyntax": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"skipLibCheck": true,
+		"ignoreDeprecations": "5.0"
+	},
+	"extends": [],
+	"exclude": ["node_modules"],
+	"include": ["src/**/*.ts"]
 }
