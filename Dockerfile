@@ -6,4 +6,6 @@ RUN yarn
 COPY . .
 RUN yarn build
 
-ENTRYPOINT ["node", "dist/index.js"]
+RUN ["chmod", "+x", "/dist/index.js"]
+
+ENTRYPOINT ["node", "/dist/index.js"]
