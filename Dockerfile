@@ -1,9 +1,10 @@
 FROM node:alpine
 
-WORKDIR /home/app
+WORKDIR /github/workspace/
 
 COPY ./package.json ./
-RUN npm install
+COPY ./package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 
