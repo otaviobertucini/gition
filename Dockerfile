@@ -1,18 +1,9 @@
-# Stage 1: Build the application
-FROM node:alpine AS builder
-
-WORKDIR /app
-
-COPY package.json .
-COPY package-lock.json .
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Stage 2: Create the production image
 FROM node:alpine
 
-# Copy built files from the previous stage
-COPY --from=builder /app .
+COPY ./package.json ./
+COPY ./yarn.lock ./
+RUN yarn
+COPY . .
+RUN yarn build
 
 ENTRYPOINT ["node", "./dist/index.js"]
