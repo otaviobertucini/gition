@@ -56,7 +56,13 @@ async function main(): Promise<void> {
 			block_id: credentials.notionPage,
 		})
 
-		const blocks = [parent]
+		const blocks = [
+			{
+				path: "",
+				block: parent,
+			},
+		]
+
 		const pages: Array<{
 			id: string
 			path: string
@@ -65,18 +71,21 @@ async function main(): Promise<void> {
 			const block: any = blocks.shift()
 			if (block == null) return
 			const children = await notion.blocks.children.list({
-				block_id: block?.id,
+				block_id: block.block.id,
 			})
 
 			pages.push({
-				id: block.id,
-				path: block.child_page.title,
+				id: block.block.id,
+				path: `${block.path}/`,
 			})
 
 			blocks.push(
-				...children.results.filter(
-					(page: any) => page.type === "child_page",
-				),
+				...children.results
+					.filter((page: any) => page.type === "child_page")
+					.map((page: any) => ({
+						path: `${block.path}/${block.block.child_page.title}`,
+						block: page,
+					})),
 			)
 		}
 
