@@ -1,13 +1,20 @@
 import * as core from "@actions/core"
 import { Client } from "@notionhq/client"
 import dotenv from "dotenv"
-// import { NotionToMarkdown } from "notion-to-md"
+import { NotionToMarkdown } from "notion-to-md"
 dotenv.config()
 // import * as github from "@actions/github"
 
 interface Credentials {
 	notionSecret: string
 	notionPage: string
+}
+
+interface NotionBlock {
+	id: string
+	child_page: {
+		title: string
+	}
 }
 
 function getDevelopmentCredentials(): Credentials {
@@ -40,25 +47,24 @@ async function main(): Promise<void> {
 
 		const notion = new Client({ auth: credentials.notionSecret })
 
-		// const notion2md = new NotionToMarkdown({
-		// 	notionClient: notion,
-		// 	config: {
-		// 		parseChildPages: false,
-		// 		// separateChildPage: true,
-		// 	},
-		// })
+		const notion2md = new NotionToMarkdown({
+			notionClient: notion,
+			config: {
+				parseChildPages: false,
+			},
+		})
 
 		// const mdBlocks = await notion2md.pageToMarkdown(credentials.notionPage)
 		// const content = notion2md.toMarkdownString(mdBlocks)
 		// console.log(`🚀 ~ main ~ content:`, content)
 
-		const parent = await notion.blocks.retrieve({
+		const parent = (await notion.blocks.retrieve({
 			block_id: credentials.notionPage,
-		})
+		})) as NotionBlock
 
 		const blocks = [
 			{
-				path: "",
+				path: ``,
 				block: parent,
 			},
 		]
@@ -76,7 +82,7 @@ async function main(): Promise<void> {
 
 			pages.push({
 				id: block.block.id,
-				path: `${block.path}/`,
+				path: `${block.path}/${block.block.child_page.title}`,
 			})
 
 			blocks.push(
@@ -88,8 +94,21 @@ async function main(): Promise<void> {
 					})),
 			)
 		}
-
 		console.log(`🚀 ~ main ~ pages:`, pages)
+
+		const convertedPages = await Promise.all(
+			pages.map(async (page) => {
+				const mdBlocks = await notion2md.pageToMarkdown(page.id)
+				const content = notion2md.toMarkdownString(mdBlocks)
+
+				return {
+					content,
+					path: page.path,
+				}
+			}),
+		)
+
+		console.log(`🚀 ~ convertedPages ~ convertedPages:`, convertedPages)
 	} catch (error) {
 		console.log(`🚀 ~ main ~ error:`, error)
 	}
