@@ -33,7 +33,6 @@ function getActionCredentials(): Credentials {
 
 async function main(): Promise<void> {
 	try {
-		console.log("falatu")
 		let credentials: Credentials
 
 		const args = process.argv.slice(2)
@@ -53,10 +52,6 @@ async function main(): Promise<void> {
 				parseChildPages: false,
 			},
 		})
-
-		// const mdBlocks = await notion2md.pageToMarkdown(credentials.notionPage)
-		// const content = notion2md.toMarkdownString(mdBlocks)
-		// console.log(`🚀 ~ main ~ content:`, content)
 
 		const parent = (await notion.blocks.retrieve({
 			block_id: credentials.notionPage,
@@ -94,21 +89,61 @@ async function main(): Promise<void> {
 					})),
 			)
 		}
-		console.log(`🚀 ~ main ~ pages:`, pages)
 
-		const convertedPages = await Promise.all(
-			pages.map(async (page) => {
-				const mdBlocks = await notion2md.pageToMarkdown(page.id)
-				const content = notion2md.toMarkdownString(mdBlocks)
+		const convertedPages = (
+			await Promise.all(
+				pages.map(async (page) => {
+					const commentsBlock = await notion.comments.list({
+						block_id: page.id,
+					})
 
-				return {
-					content,
-					path: page.path,
-				}
+					let isReady = false
+					if (commentsBlock.results.length === 0) {
+						isReady = true
+					} else {
+						const comments: string[] = []
+						commentsBlock.results.forEach((comment) => {
+							comment.rich_text.forEach((text) => {
+								comments.push(text.plain_text)
+							})
+						})
+
+						const match =
+							comments[comments.length - 1].match(/^Status=(.*)$/)
+						if (match != null && match[1] === "Ready") {
+							isReady = true
+						}
+					}
+
+					const mdBlocks = await notion2md.pageToMarkdown(page.id)
+					const content = notion2md.toMarkdownString(mdBlocks)
+
+					return {
+						content,
+						path: page.path,
+						id: page.id,
+						isReady,
+					}
+				}),
+			)
+		).filter((page) => page.isReady)
+
+		await Promise.all(
+			convertedPages.map(async (page) => {
+				await notion.comments.create({
+					parent: {
+						page_id: page.id,
+					},
+					rich_text: [
+						{
+							text: {
+								content: "Status=Done",
+							},
+						},
+					],
+				})
 			}),
 		)
-
-		console.log(`🚀 ~ convertedPages ~ convertedPages:`, convertedPages)
 	} catch (error) {
 		console.log(`🚀 ~ main ~ error:`, error)
 	}
