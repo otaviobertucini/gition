@@ -1,9 +1,21 @@
 import * as core from "@actions/core"
+import fs from "fs"
+import path from "path"
 import { Client } from "@notionhq/client"
 import dotenv from "dotenv"
 import { NotionToMarkdown } from "notion-to-md"
 dotenv.config()
-// import * as github from "@actions/github"
+
+async function resolveSequentially<T>(
+	array: T[],
+	fn: (item: T) => Promise<void>,
+): Promise<void> {
+	await array.reduce(async (acc, item) => {
+		await acc.then(async () => {
+			await fn(item)
+		})
+	}, Promise.resolve())
+}
 
 interface Credentials {
 	notionSecret: string
@@ -130,20 +142,38 @@ async function main(): Promise<void> {
 
 		await Promise.all(
 			convertedPages.map(async (page) => {
-				await notion.comments.create({
-					parent: {
-						page_id: page.id,
-					},
-					rich_text: [
-						{
-							text: {
-								content: "Status=Done",
-							},
-						},
-					],
-				})
+				// await notion.comments.create({
+				// 	parent: {
+				// 		page_id: page.id,
+				// 	},
+				// 	rich_text: [
+				// 		{
+				// 			text: {
+				// 				content: "Status=Done",
+				// 			},
+				// 		},
+				// 	],
+				// })
 			}),
 		)
+
+		await resolveSequentially(convertedPages, async (item) => {
+			console.log(
+				`🚀 ~ awaitresolveSequentially ~ item:`,
+				path.dirname(item.path),
+			)
+			await fs.promises.mkdir(path.dirname(item.path), {
+				recursive: true,
+			})
+			await fs.promises.writeFile(
+				`${item.path}/text.txt`,
+				String(item.content),
+				{
+					encoding: "utf8",
+					flag: "wx",
+				},
+			)
+		})
 
 		// TODO: save files and contents in the repository
 	} catch (error) {
