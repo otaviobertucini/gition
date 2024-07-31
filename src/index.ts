@@ -38,8 +38,10 @@ function getDevelopmentCredentials(): Credentials {
 
 function getActionCredentials(): Credentials {
 	return {
-		notionPage: core.getInput("NOTION_SECRET", { required: true }),
-		notionSecret: core.getInput("NOTION_PAGE", { required: true }),
+		notionPage: core.getInput("NOTION_PAGE", {
+			required: true,
+		}),
+		notionSecret: core.getInput("NOTION_SECRET", { required: true }),
 	}
 }
 
