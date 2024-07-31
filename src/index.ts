@@ -1,6 +1,5 @@
 import * as core from "@actions/core"
 import fs from "fs"
-// import path from "path"
 import { Client } from "@notionhq/client"
 import dotenv from "dotenv"
 import { NotionToMarkdown } from "notion-to-md"
@@ -20,6 +19,7 @@ async function resolveSequentially<T>(
 interface Credentials {
 	notionSecret: string
 	notionPage: string
+	rootDir?: string
 }
 
 interface NotionBlock {
@@ -33,6 +33,7 @@ function getDevelopmentCredentials(): Credentials {
 	return {
 		notionPage: process.env.NOTION_PAGE ?? "",
 		notionSecret: process.env.NOTION_SECRET ?? "",
+		rootDir: process.env.ROOT_DIR,
 	}
 }
 
@@ -42,6 +43,7 @@ function getActionCredentials(): Credentials {
 			required: true,
 		}),
 		notionSecret: core.getInput("NOTION_SECRET", { required: true }),
+		rootDir: core.getInput("ROOT_DIR", { required: true }),
 	}
 }
 
@@ -56,7 +58,7 @@ async function main(): Promise<void> {
 			credentials = getActionCredentials()
 		}
 
-		core.info(JSON.stringify(credentials))
+		const BASE_DIR = credentials.rootDir ?? "Notion"
 
 		const notion = new Client({ auth: credentials.notionSecret })
 
@@ -70,6 +72,11 @@ async function main(): Promise<void> {
 		const parent = (await notion.blocks.retrieve({
 			block_id: credentials.notionPage,
 		})) as NotionBlock
+
+		await fs.promises.rm(`./${BASE_DIR}/${parent.child_page.title}`, {
+			force: true,
+			recursive: true,
+		})
 
 		const blocks = [
 			{
@@ -104,68 +111,28 @@ async function main(): Promise<void> {
 			)
 		}
 
-		const convertedPages = (
-			await Promise.all(
-				pages.map(async (page) => {
-					const commentsBlock = await notion.comments.list({
-						block_id: page.id,
-					})
+		const convertedPages = await Promise.all(
+			pages.map(async (page) => {
+				const mdBlocks = await notion2md.pageToMarkdown(page.id)
+				const content = notion2md.toMarkdownString(mdBlocks)
 
-					let isReady = false
-					if (commentsBlock.results.length === 0) {
-						isReady = true
-					} else {
-						const comments: string[] = []
-						commentsBlock.results.forEach((comment) => {
-							comment.rich_text.forEach((text) => {
-								comments.push(text.plain_text)
-							})
-						})
-
-						const match =
-							comments[comments.length - 1].match(/^Status=(.*)$/)
-						if (match != null && match[1] === "Ready") {
-							isReady = true
-						}
-					}
-
-					const mdBlocks = await notion2md.pageToMarkdown(page.id)
-					const content = notion2md.toMarkdownString(mdBlocks)
-
-					return {
-						content,
-						path: page.path,
-						id: page.id,
-						isReady,
-					}
-				}),
-			)
-		).filter((page) => page.isReady)
-
-		await Promise.all(
-			convertedPages.map(async (page) => {
-				// await notion.comments.create({
-				// 	parent: {
-				// 		page_id: page.id,
-				// 	},
-				// 	rich_text: [
-				// 		{
-				// 			text: {
-				// 				content: "Status=Done",
-				// 			},
-				// 		},
-				// 	],
-				// })
+				return {
+					content,
+					path: page.path,
+					id: page.id,
+				}
 			}),
 		)
 
 		await resolveSequentially(convertedPages, async (item) => {
-			await fs.promises.mkdir("./" + item.path, {
+			const fullPath = `./${BASE_DIR}/${item.path}`
+
+			await fs.promises.mkdir(fullPath, {
 				recursive: true,
 			})
 
 			await fs.promises.writeFile(
-				`.${item.path}/content.md`,
+				`${fullPath}/content.md`,
 				item.content.parent,
 				{
 					encoding: "utf8",
@@ -173,7 +140,7 @@ async function main(): Promise<void> {
 			)
 		})
 
-		// TODO: save files and contents in the repository in folder
+		// TODO: read more than one page
 	} catch (error) {
 		console.log(`🚀 ~ main ~ error:`, error)
 	}
