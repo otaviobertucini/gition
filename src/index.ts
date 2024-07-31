@@ -163,13 +163,12 @@ async function main(): Promise<void> {
 			await fs.promises.mkdir("./" + item.path, {
 				recursive: true,
 			})
-			console.log("icccccciiiii")
+
 			await fs.promises.writeFile(
-				`./${item.path}/content.txt`,
+				`.${item.path}/content.md`,
 				item.content.parent,
 				{
 					encoding: "utf8",
-					flag: "wx",
 				},
 			)
 		})
