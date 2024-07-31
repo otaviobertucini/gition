@@ -172,7 +172,7 @@ async function main(): Promise<void> {
 			)
 		})
 
-		// TODO: save files and contents in the repository
+		// TODO: save files and contents in the repository in folder
 	} catch (error) {
 		console.log(`🚀 ~ main ~ error:`, error)
 	}
