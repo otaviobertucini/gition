@@ -43,7 +43,7 @@ function getActionCredentials(): Credentials {
 			required: true,
 		}),
 		notionSecret: core.getInput("NOTION_SECRET", { required: true }),
-		rootDir: core.getInput("ROOT_DIR", { required: true }),
+		rootDir: core.getInput("ROOT_DIR", { required: false }),
 	}
 }
 
@@ -92,6 +92,30 @@ async function main(): Promise<void> {
 		while (blocks.length > 0) {
 			const block: any = blocks.shift()
 			if (block == null) return
+
+			const commentsBlock = await notion.comments.list({
+				block_id: block.block.id,
+			})
+
+			if (commentsBlock.results.length > 0) {
+				const comments: string[] = []
+				commentsBlock.results.forEach((comment) => {
+					comment.rich_text.forEach((text) => {
+						comments.push(text.plain_text)
+					})
+				})
+
+				const isPaused = comments.some((comment) => {
+					const match = comment.match(/^Status=(.*)$/)
+					if (match != null && match[1].toLowerCase() === "paused") {
+						return true
+					}
+					return false
+				})
+
+				if (isPaused) continue
+			}
+
 			const children = await notion.blocks.children.list({
 				block_id: block.block.id,
 			})
