@@ -31,7 +31,7 @@ interface NotionBlock {
 
 function getDevelopmentCredentials(): Credentials {
 	return {
-		notionPage: process.env.NOTION_PAGE ?? "",
+		notionPage: process.env.NOTION_PAGES ?? "",
 		notionSecret: process.env.NOTION_SECRET ?? "",
 		rootDir: process.env.ROOT_DIR,
 	}
@@ -39,7 +39,7 @@ function getDevelopmentCredentials(): Credentials {
 
 function getActionCredentials(): Credentials {
 	return {
-		notionPage: core.getInput("NOTION_PAGE", {
+		notionPage: core.getInput("NOTION_PAGES", {
 			required: true,
 		}),
 		notionSecret: core.getInput("NOTION_SECRET", { required: true }),
@@ -69,102 +69,130 @@ async function main(): Promise<void> {
 			},
 		})
 
-		const parent = (await notion.blocks.retrieve({
-			block_id: credentials.notionPage,
-		})) as NotionBlock
+		const pagesIds = credentials.notionPage.split(";")
 
-		await fs.promises.rm(`./${BASE_DIR}/${parent.child_page.title}`, {
-			force: true,
-			recursive: true,
-		})
+		await Promise.all(
+			pagesIds.map(async (pageId) => {
+				const parent = (await notion.blocks.retrieve({
+					block_id: pageId,
+				})) as NotionBlock
 
-		const blocks = [
-			{
-				path: ``,
-				block: parent,
-			},
-		]
+				await fs.promises.rm(
+					`./${BASE_DIR}/${parent.child_page.title}`,
+					{
+						force: true,
+						recursive: true,
+					},
+				)
 
-		const pages: Array<{
-			id: string
-			path: string
-		}> = []
-		while (blocks.length > 0) {
-			const block: any = blocks.shift()
-			if (block == null) return
+				const blocks = [
+					{
+						path: ``,
+						block: parent,
+					},
+				]
 
-			const commentsBlock = await notion.comments.list({
-				block_id: block.block.id,
-			})
+				const pages: Array<{
+					id: string
+					path: string
+				}> = []
+				while (blocks.length > 0) {
+					const block: any = blocks.shift()
+					if (block == null) return
 
-			if (commentsBlock.results.length > 0) {
-				const comments: string[] = []
-				commentsBlock.results.forEach((comment) => {
-					comment.rich_text.forEach((text) => {
-						comments.push(text.plain_text)
+					const commentsBlock = await notion.comments.list({
+						block_id: block.block.id,
 					})
-				})
 
-				const isPaused = comments.some((comment) => {
-					const match = comment.match(/^Status=(.*)$/)
-					if (match != null && match[1].toLowerCase() === "paused") {
-						return true
+					if (commentsBlock.results.length > 0) {
+						const comments: string[] = []
+						commentsBlock.results.forEach((comment) => {
+							comment.rich_text.forEach((text) => {
+								comments.push(text.plain_text)
+							})
+						})
+
+						const isPaused = comments.some((comment) => {
+							const match = comment.match(/^Status=(.*)$/)
+							if (
+								match != null &&
+								match[1].toLowerCase() === "paused"
+							) {
+								return true
+							}
+							return false
+						})
+
+						if (isPaused) continue
 					}
-					return false
-				})
 
-				if (isPaused) continue
-			}
+					const children = await notion.blocks.children.list({
+						block_id: block.block.id,
+					})
 
-			const children = await notion.blocks.children.list({
-				block_id: block.block.id,
-			})
-
-			pages.push({
-				id: block.block.id,
-				path: `${block.path}/${block.block.child_page.title}`,
-			})
-
-			blocks.push(
-				...children.results
-					.filter((page: any) => page.type === "child_page")
-					.map((page: any) => ({
+					pages.push({
+						id: block.block.id,
 						path: `${block.path}/${block.block.child_page.title}`,
-						block: page,
-					})),
-			)
-		}
+					})
 
-		const convertedPages = await Promise.all(
-			pages.map(async (page) => {
-				const mdBlocks = await notion2md.pageToMarkdown(page.id)
-				const content = notion2md.toMarkdownString(mdBlocks)
-
-				return {
-					content,
-					path: page.path,
-					id: page.id,
+					blocks.push(
+						...children.results
+							.filter((page: any) => page.type === "child_page")
+							.map((page: any) => ({
+								path: `${block.path}/${block.block.child_page.title}`,
+								block: page,
+							})),
+					)
 				}
+
+				const convertedPages = await Promise.all(
+					pages.map(async (page) => {
+						const mdBlocks = await notion2md.pageToMarkdown(page.id)
+
+						const normalizedBlocks = mdBlocks.map((block) => {
+							if (
+								block.type === "paragraph" &&
+								block.parent === ""
+							) {
+								return {
+									...block,
+									parent: "\n",
+								}
+							}
+							return block
+						})
+
+						const content =
+							notion2md.toMarkdownString(normalizedBlocks)
+
+						return {
+							content,
+							path: page.path,
+							id: page.id,
+							isEmpty: mdBlocks.length === 0,
+						}
+					}),
+				)
+
+				await resolveSequentially(convertedPages, async (item) => {
+					const fullPath = `./${BASE_DIR}/${item.path}`
+
+					await fs.promises.mkdir(fullPath, {
+						recursive: true,
+					})
+
+					if (item.isEmpty) return
+
+					await fs.promises.writeFile(
+						`${fullPath}/content.md`,
+						item.content.parent,
+						{
+							encoding: "utf8",
+						},
+					)
+				})
 			}),
 		)
-
-		await resolveSequentially(convertedPages, async (item) => {
-			const fullPath = `./${BASE_DIR}/${item.path}`
-
-			await fs.promises.mkdir(fullPath, {
-				recursive: true,
-			})
-
-			await fs.promises.writeFile(
-				`${fullPath}/content.md`,
-				item.content.parent,
-				{
-					encoding: "utf8",
-				},
-			)
-		})
-
-		// TODO: read more than one page
 	} catch (error) {
 		console.log(`🚀 ~ main ~ error:`, error)
 	}
