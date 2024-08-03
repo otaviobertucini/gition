@@ -71,19 +71,16 @@ async function main(): Promise<void> {
 
 		const pagesIds = credentials.notionPage.split(";")
 
+		await fs.promises.rm(`./${BASE_DIR}`, {
+			force: true,
+			recursive: true,
+		})
+
 		await Promise.all(
 			pagesIds.map(async (pageId) => {
 				const parent = (await notion.blocks.retrieve({
 					block_id: pageId,
 				})) as NotionBlock
-
-				await fs.promises.rm(
-					`./${BASE_DIR}/${parent.child_page.title}`,
-					{
-						force: true,
-						recursive: true,
-					},
-				)
 
 				const blocks = [
 					{
