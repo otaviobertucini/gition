@@ -1,5 +1,3 @@
-# Gition: Export Notion Pages to Your GitHub Repository
-
 Gition is a GitHub Action that allows you to export Notion pages directly into your repositories. When triggered, it reads the content of one or more Notion pages and saves it in specified repository folders.
 
 ## Configuration
@@ -64,6 +62,11 @@ jobs:
                   commit_message: Commit new content from Notion
 ```
 
+### Conclusion
+
+After completing these steps, your setup will be ready, and the contents of your Notion pages will be exported to GitHub whenever the Action is triggered.
+
 ## Notes
 
-- "Mention" links in Notion cannot be read by the Notion API and will be ignored. Instead, use the "Add Link" feature (Ctrl + K), which will ensure links are read and labeled according to their titles.
+- Currently, only text, images, and links have been tested. Other Notion components may not be exported correctly or could potentially cause the workflow to fail.
+- "Mention" links in Notion are not accessible via the Notion API and will be ignored. To ensure links are properly exported, use the "Add Link" feature (Ctrl + K) instead. This will label the links according to their titles.
