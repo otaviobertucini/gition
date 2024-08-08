@@ -6,13 +6,13 @@ Gition is a GitHub Action that allows you to export Notion pages directly into y
 
 1. Access your [Notion integrations](https://www.notion.so/profile/integrations) and create a new integration with the following settings:
 
-   ![Notion Integration](https://github.com/otaviobertucini/gition/blob/master/capabilities.gif?raw=true)
+    ![Notion Integration](https://github.com/otaviobertucini/gition/blob/master/capabilities.gif?raw=true)
 
 2. Save the "Internal Integration Secret" for later use.
 
 3. Go to the Notion page you want to connect and link it to the integration you just created.
 
-   ![Notion Page Integration](https://github.com/otaviobertucini/gition/blob/master/notion.gif?raw=true)
+    ![Notion Page Integration](https://github.com/otaviobertucini/gition/blob/master/notion.gif?raw=true)
 
 4. Obtain the page ID from the URL of your Notion page for later. For example, if the URL is `https://www.notion.so/Building-Data-Intensive-Application-3f52f0203a3e4aedb0931227bb485545`, the page ID is `3f52f0203a3e4aedb0931227bb485545`.
 
@@ -22,9 +22,9 @@ Gition is a GitHub Action that allows you to export Notion pages directly into y
 
 2. Configure the environment variables:
 
-   - Create a new secret in the repository ([instructions here](https://docs.github.com/pt/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)) and save the "Internal Integration Secret" under it.
-   - Paste the Notion page ID(s) in the `NOTION_PAGES` variable in the YAML code. If you have multiple pages, separate them with a semicolon (`;`).
-   - Use the `ROOT_DIR` variable if you want to save the pages in a specific folder within your repository. If this variable is not set, the pages will be saved in the root folder. _Be cautious: if you specify a folder name that already exists, it will be overwritten._
+    - Create a new secret in the repository ([instructions here](https://docs.github.com/pt/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)) and save the "Internal Integration Secret" under it.
+    - Paste the Notion page ID(s) in the `NOTION_PAGES` variable in the YAML code. If you have multiple pages, separate them with a semicolon (`;`).
+    - Use the `ROOT_DIR` variable if you want to save the pages in a specific folder within your repository. If this variable is not set, the pages will be saved in the "Notion" folder. _Be cautious: if you specify a folder name that already exists, it will be overwritten._
 
 3. Adjust the frequency of the workflow runs by modifying the `cron` schedule.
 
@@ -68,5 +68,5 @@ After completing these steps, your setup will be ready, and the contents of your
 
 ## Notes
 
-- Currently, only text, images, and links have been tested. Other Notion components may not be exported correctly or could potentially cause the workflow to fail.
-- "Mention" links in Notion are not accessible via the Notion API and will be ignored. To ensure links are properly exported, use the "Add Link" feature (Ctrl + K) instead. This will label the links according to their titles.
+-   Currently, only text, images, and links have been tested. Other Notion components may not be exported correctly or could potentially cause the workflow to fail.
+-   "Mention" links in Notion are not accessible via the Notion API and will be ignored. To ensure links are properly exported, use the "Add Link" feature (Ctrl + K) instead. This will label the links according to their titles.
