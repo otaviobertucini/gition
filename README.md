@@ -50,7 +50,7 @@ jobs:
             - uses: actions/checkout@v3
 
             - name: gition
-              uses: otaviobertucini/gition@v0.17
+              uses: otaviobertucini/gition@v1.00
               with:
                   NOTION_SECRET: ${{ secrets.NOTION_SECRET }}
                   NOTION_PAGES: 3f52f0203a3e4aedb0931227bb485545
